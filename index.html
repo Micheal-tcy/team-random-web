@@ -192,6 +192,23 @@
       border-color: var(--border-strong);
       background: rgba(255, 255, 255, 0.07);
     }
+    #btnGenId {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      cursor: pointer;
+      font-family: inherit;
+      flex-shrink: 0;
+    }
+    #btnGenId:hover {
+      color: var(--text);
+      border-color: var(--border-strong);
+      background: rgba(255, 255, 255, 0.08);
+    }
     .pool-scroll {
       max-height: 220px;
       overflow-y: auto;
@@ -479,6 +496,57 @@
       background: rgba(248, 113, 113, 0.1);
     }
     #fileImport { display: none; }
+    .cloud-panel {
+      margin-top: 1.15rem;
+      padding-top: 1.15rem;
+      border-top: 1px solid var(--border);
+    }
+    .cloud-panel .panel-title { margin-bottom: 0.5rem; }
+    .cloud-grid {
+      display: grid;
+      gap: 0.65rem;
+    }
+    @media (min-width: 560px) {
+      .cloud-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+    }
+    .cloud-grid input[type="text"],
+    .cloud-grid input[type="password"] {
+      width: 100%;
+      padding: 0.55rem 0.7rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(8, 12, 20, 0.55);
+      color: var(--text);
+      font-size: 0.88rem;
+      font-family: ui-monospace, monospace;
+    }
+    .cloud-grid input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+    .cloud-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      align-items: center;
+      margin-top: 0.5rem;
+    }
+    .cloud-actions label.cloud-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    #cloudStatus {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+      min-height: 1.2em;
+    }
   </style>
 </head>
 <body>
@@ -531,6 +599,36 @@
         <button type="button" class="main-btn btn-secondary" id="btnClear">清空结果</button>
       </div>
 
+      <div class="cloud-panel">
+        <p class="panel-title">云端保存（Supabase）</p>
+        <p class="hint" style="margin: 0 0 0.75rem;">
+          在 <a href="https://supabase.com" target="_blank" rel="noopener" style="color: var(--accent);">Supabase</a> 免费建项目，按仓库内 <code style="color: var(--accent-2);">supabase-schema.sql</code> 建表后，把项目 URL 与 anon 公钥填到下方。数据存在你的数据库里，通过「存档 ID」区分不同队伍（请妥善保管存档 ID）。
+        </p>
+        <div class="cloud-grid cols-2">
+          <div>
+            <label class="field-label" for="sbUrl">Supabase URL</label>
+            <input type="text" id="sbUrl" placeholder="https://xxxx.supabase.co" autocomplete="off" />
+          </div>
+          <div>
+            <label class="field-label" for="sbKey">anon public key</label>
+            <input type="password" id="sbKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." autocomplete="off" />
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label class="field-label" for="saveId">存档 ID（可分享给别人加载同一份）</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center;">
+              <input type="text" id="saveId" style="flex: 1; min-width: 200px;" placeholder="点击「生成新 ID」" autocomplete="off" />
+              <button type="button" id="btnGenId">生成新 ID</button>
+            </div>
+          </div>
+        </div>
+        <div class="cloud-actions">
+          <button type="button" class="main-btn btn-secondary" id="btnCloudSave">保存到云端</button>
+          <button type="button" class="main-btn btn-secondary" id="btnCloudLoad">从云端加载</button>
+          <label class="cloud-check"><input type="checkbox" id="autoCloud" /> 本地改动后自动同步云端（约 2 秒防抖）</label>
+        </div>
+        <div id="cloudStatus"></div>
+      </div>
+
       <div class="persist-bar">
         <div class="persist-status">
           <span class="dot" aria-hidden="true"></span>
@@ -547,7 +645,7 @@
 
     <div id="result"></div>
     <footer>
-      名单与分队结果保存在当前浏览器的 localStorage（按网站域名区分）。纯静态页面，<strong>无服务器上传</strong>；换电脑请用「导出备份」。
+      可选将完整状态同步到你自己的 <strong>Supabase</strong> 数据库；未配置时仍仅使用浏览器 localStorage。勿将 anon key 视为机密，但请通过长随机「存档 ID」保护数据；详见仓库说明。
     </footer>
   </div>
 
@@ -569,6 +667,186 @@
     const $btnImport = document.getElementById("btnImport");
     const $btnResetData = document.getElementById("btnResetData");
     const $fileImport = document.getElementById("fileImport");
+    const $sbUrl = document.getElementById("sbUrl");
+    const $sbKey = document.getElementById("sbKey");
+    const $saveId = document.getElementById("saveId");
+    const $btnGenId = document.getElementById("btnGenId");
+    const $btnCloudSave = document.getElementById("btnCloudSave");
+    const $btnCloudLoad = document.getElementById("btnCloudLoad");
+    const $autoCloud = document.getElementById("autoCloud");
+    const $cloudStatus = document.getElementById("cloudStatus");
+
+    const CLOUD_LS = {
+      url: "teamRandomCloud.url",
+      key: "teamRandomCloud.key",
+      saveId: "teamRandomCloud.saveId",
+      auto: "teamRandomCloud.auto",
+    };
+
+    function loadCloudFormFromLS() {
+      try {
+        $sbUrl.value = localStorage.getItem(CLOUD_LS.url) || "";
+        $sbKey.value = localStorage.getItem(CLOUD_LS.key) || "";
+        $saveId.value = localStorage.getItem(CLOUD_LS.saveId) || "";
+        $autoCloud.checked = localStorage.getItem(CLOUD_LS.auto) === "1";
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    function persistCloudField(key, value) {
+      try {
+        localStorage.setItem(key, value);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    function setCloudStatus(msg, isErr) {
+      if (!$cloudStatus) return;
+      $cloudStatus.textContent = msg || "";
+      $cloudStatus.style.color = isErr ? "var(--exclude)" : "var(--muted)";
+    }
+
+    function generateSaveId() {
+      if (window.crypto && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID();
+      }
+      if (window.crypto && crypto.getRandomValues) {
+        const a = new Uint8Array(16);
+        crypto.getRandomValues(a);
+        return Array.from(a, (b) => b.toString(16).padStart(2, "0")).join("");
+      }
+      return "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+    }
+
+    function validateCloudConfig() {
+      const url = ($sbUrl && $sbUrl.value.trim().replace(/\/$/, "")) || "";
+      const key = ($sbKey && $sbKey.value.trim()) || "";
+      const id = ($saveId && $saveId.value.trim()) || "";
+      if (!url || !key || !id) {
+        setCloudStatus("请填写 Supabase URL、anon key 与存档 ID。", true);
+        return null;
+      }
+      if (!/^https:\/\/.+/i.test(url)) {
+        setCloudStatus("Supabase URL 应以 https:// 开头。", true);
+        return null;
+      }
+      return { url, key, id };
+    }
+
+    let cloudTimer = null;
+    function scheduleCloudPush() {
+      if (!$autoCloud || !$autoCloud.checked) return;
+      if (cloudTimer) clearTimeout(cloudTimer);
+      cloudTimer = setTimeout(() => {
+        cloudTimer = null;
+        pushToCloud(true);
+      }, 2000);
+    }
+
+    async function pushToCloud(silent) {
+      const cfg = validateCloudConfig();
+      if (!cfg) {
+        if (!silent) alert("请先正确填写云端配置（URL、anon key、存档 ID）。");
+        return;
+      }
+      try {
+        setCloudStatus(silent ? "" : "正在保存到云端…");
+        const payload = buildPayload();
+        const row = {
+          id: cfg.id,
+          data: payload,
+          updated_at: new Date().toISOString(),
+        };
+        const res = await fetch(`${cfg.url}/rest/v1/team_random_state`, {
+          method: "POST",
+          headers: {
+            apikey: cfg.key,
+            Authorization: "Bearer " + cfg.key,
+            "Content-Type": "application/json",
+            Prefer: "return=minimal,resolution=merge-duplicates",
+          },
+          body: JSON.stringify(row),
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || res.statusText);
+        }
+        const t = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        setCloudStatus(
+          `云端已更新 ${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}`,
+          false
+        );
+      } catch (e) {
+        console.warn(e);
+        setCloudStatus("云端保存失败：" + (e.message || String(e)), true);
+        if (!silent) alert("云端保存失败，请检查表是否已按 supabase-schema.sql 创建，以及 RLS 策略是否允许 anon 读写。");
+      }
+    }
+
+    async function pullFromCloud() {
+      const cfg = validateCloudConfig();
+      if (!cfg) {
+        alert("请先正确填写云端配置。");
+        return;
+      }
+      try {
+        setCloudStatus("正在从云端加载…");
+        const q = encodeURIComponent(cfg.id);
+        const res = await fetch(
+          `${cfg.url}/rest/v1/team_random_state?id=eq.${q}&select=data`,
+          {
+            headers: {
+              apikey: cfg.key,
+              Authorization: "Bearer " + cfg.key,
+            },
+          }
+        );
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || res.statusText);
+        }
+        const rows = await res.json();
+        if (!Array.isArray(rows) || !rows.length || rows[0].data == null) {
+          setCloudStatus("云端暂无此存档 ID 的数据。", true);
+          return;
+        }
+        const data = rows[0].data;
+        applyLoadedState(data);
+        renderPool();
+        renderResultFromMeta(lastSplitMeta);
+        saveState();
+        setCloudStatus("已从云端加载并写入本地。", false);
+      } catch (e) {
+        console.warn(e);
+        setCloudStatus("加载失败：" + (e.message || String(e)), true);
+        alert("从云端加载失败，请检查网络与 Supabase 配置。");
+      }
+    }
+
+    loadCloudFormFromLS();
+
+    ["input", "change"].forEach((ev) => {
+      $sbUrl.addEventListener(ev, () => persistCloudField(CLOUD_LS.url, $sbUrl.value.trim()));
+      $sbKey.addEventListener(ev, () => persistCloudField(CLOUD_LS.key, $sbKey.value.trim()));
+      $saveId.addEventListener(ev, () =>
+        persistCloudField(CLOUD_LS.saveId, $saveId.value.trim())
+      );
+    });
+    $autoCloud.addEventListener("change", () => {
+      persistCloudField(CLOUD_LS.auto, $autoCloud.checked ? "1" : "0");
+    });
+
+    $btnGenId.addEventListener("click", () => {
+      $saveId.value = generateSaveId();
+      persistCloudField(CLOUD_LS.saveId, $saveId.value.trim());
+      setCloudStatus("已生成新存档 ID，记得先「保存到云端」再分享此 ID。", false);
+    });
+
+    $btnCloudSave.addEventListener("click", () => pushToCloud(false));
+    $btnCloudLoad.addEventListener("click", () => pullFromCloud());
 
     function parseNames(raw) {
       if (!raw || !raw.trim()) return [];
@@ -628,6 +906,7 @@
           const pad = (n) => String(n).padStart(2, "0");
           el.textContent = `已保存 ${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`;
         }
+        scheduleCloudPush();
       } catch (e) {
         console.warn(e);
         const el = document.getElementById("saveHint");
