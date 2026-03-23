@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>随机分队工具</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #080c12;
+      --bg: #0c1220;
+      --panel: rgba(22, 32, 52, 0.72);
+      --panel-solid: #141d2f;
+      --border: rgba(120, 160, 220, 0.18);
+      --border-strong: rgba(120, 160, 220, 0.32);
+      --text: #f0f4fc;
+      --muted: #8fa3c4;
+      --accent: #5b9cff;
+      --accent-glow: rgba(91, 156, 255, 0.45);
+      --accent-2: #a78bfa;
+      --card: rgba(30, 42, 64, 0.85);
+      --success: #4ade80;
+      --warn: #fbbf24;
+      --exclude: #f87171;
+      --radius: 14px;
+      --radius-sm: 10px;
+      --font: "Noto Sans SC", "DM Sans", "Segoe UI", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      color: var(--text);
+      line-height: 1.55;
+      padding: clamp(1rem, 3vw, 2rem);
+      background:
+        radial-gradient(ellipse 100% 80% at 50% -30%, rgba(91, 156, 255, 0.22), transparent 55%),
+        radial-gradient(ellipse 60% 50% at 100% 20%, rgba(167, 139, 250, 0.12), transparent 45%),
+        radial-gradient(ellipse 50% 40% at 0% 80%, rgba(74, 222, 128, 0.06), transparent 50%),
+        var(--bg-deep);
+    }
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+    }
+    header.hero {
+      text-align: center;
+      margin-bottom: 1.75rem;
+      padding: 0.5rem 0;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(91, 156, 255, 0.12);
+      border: 1px solid rgba(91, 156, 255, 0.28);
+      margin-bottom: 0.65rem;
+    }
+    .badge svg { width: 14px; height: 14px; opacity: 0.9; }
+    h1 {
+      font-size: clamp(1.55rem, 4vw, 2rem);
+      font-weight: 700;
+      margin: 0 0 0.35rem;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #fff 0%, #c8d7f0 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 0.92rem;
+      max-width: 36em;
+      margin: 0 auto;
+    }
+    .panel {
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.35rem 1.5rem;
+      margin-bottom: 1rem;
+      box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .panel-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 0 0 0.85rem;
+    }
+    label.field-label {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 0.45rem;
+    }
+    label.field-label span.hint-inline {
+      font-weight: 400;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+    textarea {
+      width: 100%;
+      min-height: 168px;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(8, 12, 20, 0.55);
+      color: var(--text);
+      font-size: 0.95rem;
+      resize: vertical;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-top: 1rem;
+      align-items: center;
+    }
+    .stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: rgba(8, 12, 20, 0.4);
+    }
+    .stat-pill strong { font-weight: 700; color: #fff; }
+    .stat-pill.total { border-color: rgba(91, 156, 255, 0.35); color: var(--accent); }
+    .stat-pill.active { border-color: rgba(74, 222, 128, 0.4); color: var(--success); }
+    .stat-pill.idle { border-color: rgba(248, 113, 113, 0.35); color: var(--exclude); }
+    .pool-section {
+      margin-top: 1.15rem;
+      padding-top: 1.15rem;
+      border-top: 1px solid var(--border);
+    }
+    .pool-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.65rem;
+    }
+    .pool-head .panel-title { margin: 0; }
+    .mini-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+    .mini-actions button {
+      padding: 0.35rem 0.7rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      cursor: pointer;
+      font-family: inherit;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .mini-actions button:hover {
+      color: var(--text);
+      border-color: var(--border-strong);
+      background: rgba(255, 255, 255, 0.07);
+    }
+    .pool-scroll {
+      max-height: 220px;
+      overflow-y: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(8, 12, 20, 0.45);
+      padding: 0.35rem;
+    }
+    .pool-scroll::-webkit-scrollbar { width: 8px; }
+    .pool-scroll::-webkit-scrollbar-thumb {
+      background: rgba(120, 160, 220, 0.25);
+      border-radius: 999px;
+    }
+    .pool-empty {
+      padding: 1.25rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+    .pool-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.45rem 0.55rem;
+      border-radius: 8px;
+      margin-bottom: 2px;
+      transition: background 0.15s;
+    }
+    .pool-row:hover { background: rgba(255, 255, 255, 0.04); }
+    .pool-row.excluded {
+      opacity: 0.55;
+    }
+    .pool-row.excluded .name-text {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+    .idx {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--muted);
+      width: 1.5rem;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .name-text {
+      flex: 1;
+      font-size: 0.9rem;
+      font-weight: 500;
+      min-width: 0;
+      word-break: break-all;
+    }
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-shrink: 0;
+    }
+    .toggle-wrap label.switch-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    .switch {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: rgba(120, 160, 220, 0.2);
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      transition: background 0.2s, border-color 0.2s;
+      cursor: pointer;
+    }
+    .slider::before {
+      content: "";
+      position: absolute;
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      top: 2px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    }
+    .switch input:checked + .slider {
+      background: rgba(74, 222, 128, 0.35);
+      border-color: rgba(74, 222, 128, 0.5);
+    }
+    .switch input:checked + .slider::before {
+      transform: translateX(18px);
+    }
+    .switch input:focus-visible + .slider {
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-end;
+      margin-top: 1.1rem;
+    }
+    .field { flex: 1; min-width: 140px; }
+    input[type="number"] {
+      width: 100%;
+      max-width: 170px;
+      padding: 0.65rem 0.85rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(8, 12, 20, 0.55);
+      color: var(--text);
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      margin-top: 1.2rem;
+    }
+    button.main-btn {
+      cursor: pointer;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 0.72rem 1.35rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: inherit;
+      transition: transform 0.1s, filter 0.15s, box-shadow 0.15s;
+    }
+    button.main-btn:active { transform: scale(0.98); }
+    .btn-primary {
+      color: #0a0e18;
+      background: linear-gradient(135deg, #8ec5ff 0%, var(--accent) 50%, #4d8fff 100%);
+      box-shadow: 0 4px 20px rgba(91, 156, 255, 0.35);
+    }
+    .btn-primary:hover { filter: brightness(1.06); }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border: 1px solid var(--border);
+      font-weight: 600;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--border-strong);
+    }
+    #result { margin-top: 1rem; }
+    .teams {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 0.85rem;
+    }
+    .team {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.05rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .team::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      opacity: 0.85;
+    }
+    .team h3 {
+      margin: 0.35rem 0 0.55rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .team ul {
+      margin: 0;
+      padding-left: 1.1rem;
+    }
+    .team li {
+      margin: 0.3rem 0;
+      font-size: 0.9rem;
+    }
+    .msg {
+      padding: 0.85rem 1.05rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      margin-bottom: 0.85rem;
+      border: 1px solid transparent;
+    }
+    .msg.warn {
+      background: rgba(251, 191, 36, 0.1);
+      border-color: rgba(251, 191, 36, 0.35);
+      color: #fde68a;
+    }
+    .msg.info {
+      background: rgba(74, 222, 128, 0.08);
+      border-color: rgba(74, 222, 128, 0.28);
+      color: #86efac;
+    }
+    footer {
+      margin-top: 2rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-align: center;
+      opacity: 0.85;
+    }
+    .persist-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+      margin-top: 1rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(8, 12, 20, 0.35);
+    }
+    .persist-status {
+      font-size: 0.8rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .persist-status .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+    }
+    .persist-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+    .persist-actions button {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .persist-actions button:hover {
+      border-color: var(--border-strong);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .persist-actions button.danger {
+      border-color: rgba(248, 113, 113, 0.35);
+      color: var(--exclude);
+    }
+    .persist-actions button.danger:hover {
+      background: rgba(248, 113, 113, 0.1);
+    }
+    #fileImport { display: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="badge" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        自动保存 · 可部署上线
+      </div>
+      <h1>随机分队</h1>
+      <p class="sub">自定义名单与队伍数，一键洗牌分组；可标记成员<strong>不参与</strong>；数据保存在本机浏览器，支持导出备份。</p>
+    </header>
+
+    <div class="panel">
+      <p class="panel-title">名单输入</p>
+      <label class="field-label" for="names">人员名单 <span class="hint-inline">（每行一个，或逗号 / 顿号分隔）</span></label>
+      <textarea id="names" placeholder="每行一个姓名" autocomplete="off"></textarea>
+
+      <div class="stats" id="statsBar" aria-live="polite">
+        <span class="stat-pill total">名单 <strong id="statTotal">0</strong> 人</span>
+        <span class="stat-pill active">参与分队 <strong id="statActive">0</strong> 人</span>
+        <span class="stat-pill idle">暂不参与 <strong id="statIdle">0</strong> 人</span>
+      </div>
+
+      <div class="pool-section">
+        <div class="pool-head">
+          <p class="panel-title">匹配池</p>
+          <div class="mini-actions">
+            <button type="button" id="btnAllIn" title="全部参与分队">全部参与</button>
+            <button type="button" id="btnAllOut" title="全部暂不参与">全部暂停</button>
+          </div>
+        </div>
+        <div class="pool-scroll" id="poolList"></div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label class="field-label" for="teamCount">队伍数量</label>
+          <input type="number" id="teamCount" min="1" max="99" value="5" />
+          <p class="hint">仅对「参与分队」成员随机分组；人数会在各队间尽量平均。</p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="main-btn btn-primary" id="btnSplit">随机分队</button>
+        <button type="button" class="main-btn btn-secondary" id="btnClear">清空结果</button>
+      </div>
+
+      <div class="persist-bar">
+        <div class="persist-status">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="saveHint">更改已自动保存到此浏览器（同网址）</span>
+        </div>
+        <div class="persist-actions">
+          <button type="button" id="btnExport">导出 JSON 备份</button>
+          <button type="button" id="btnImport">导入备份</button>
+          <button type="button" class="danger" id="btnResetData" title="清除本页保存的全部数据">清除本地数据</button>
+        </div>
+        <input type="file" id="fileImport" accept="application/json,.json" />
+      </div>
+    </div>
+
+    <div id="result"></div>
+    <footer>
+      名单与分队结果保存在当前浏览器的 localStorage（按网站域名区分）。纯静态页面，<strong>无服务器上传</strong>；换电脑请用「导出备份」。
+    </footer>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "teamRandomSplit.v1";
+
+    const $names = document.getElementById("names");
+    const $teamCount = document.getElementById("teamCount");
+    const $result = document.getElementById("result");
+    const $btnSplit = document.getElementById("btnSplit");
+    const $btnClear = document.getElementById("btnClear");
+    const $poolList = document.getElementById("poolList");
+    const $statTotal = document.getElementById("statTotal");
+    const $statActive = document.getElementById("statActive");
+    const $statIdle = document.getElementById("statIdle");
+    const $btnAllIn = document.getElementById("btnAllIn");
+    const $btnAllOut = document.getElementById("btnAllOut");
+    const $btnExport = document.getElementById("btnExport");
+    const $btnImport = document.getElementById("btnImport");
+    const $btnResetData = document.getElementById("btnResetData");
+    const $fileImport = document.getElementById("fileImport");
+
+    function parseNames(raw) {
+      if (!raw || !raw.trim()) return [];
+      const text = raw.trim();
+      const parts = text
+        .split(/[\n,，、;；]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return parts;
+    }
+
+    function mergeIncluded(prevNames, prevIncluded, newNames) {
+      return newNames.map((name, i) => {
+        if (i < prevNames.length && prevNames[i] === name) return prevIncluded[i];
+        return true;
+      });
+    }
+
+    let lastNames = [];
+    let included = [];
+    /** @type {{ teams: string[][], k: number, total: number, active: number, idle: number } | null} */
+    let lastSplitMeta = null;
+
+    let saveTimer = null;
+    function scheduleSave() {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        saveTimer = null;
+        saveState();
+      }, 400);
+    }
+
+    function buildPayload() {
+      syncStateFromTextarea();
+      const tc = parseInt($teamCount.value, 10);
+      return {
+        v: 1,
+        namesText: $names.value,
+        teamCount: Number.isNaN(tc) ? 5 : tc,
+        included: included.slice(),
+        lastTeams: lastSplitMeta ? lastSplitMeta.teams : null,
+        lastK: lastSplitMeta ? lastSplitMeta.k : null,
+        lastTotal: lastSplitMeta ? lastSplitMeta.total : null,
+        lastActive: lastSplitMeta ? lastSplitMeta.active : null,
+        lastIdle: lastSplitMeta ? lastSplitMeta.idle : null,
+        savedAt: Date.now(),
+      };
+    }
+
+    function saveState() {
+      try {
+        const payload = buildPayload();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        const el = document.getElementById("saveHint");
+        if (el) {
+          const t = new Date();
+          const pad = (n) => String(n).padStart(2, "0");
+          el.textContent = `已保存 ${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`;
+        }
+      } catch (e) {
+        console.warn(e);
+        const el = document.getElementById("saveHint");
+        if (el) el.textContent = "保存失败（可能超出浏览器存储限额）";
+      }
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+
+    function applyLoadedState(data) {
+      if (!data || typeof data !== "object") return;
+      if (typeof data.namesText === "string") {
+        $names.value = data.namesText;
+      }
+      if (data.teamCount != null && !Number.isNaN(parseInt(String(data.teamCount), 10))) {
+        $teamCount.value = String(parseInt(String(data.teamCount), 10));
+      }
+      syncStateFromTextarea();
+      if (Array.isArray(data.included)) {
+        included = lastNames.map((_, i) =>
+          i < data.included.length ? !!data.included[i] : true
+        );
+      } else {
+        included = lastNames.map(() => true);
+      }
+      lastSplitMeta = null;
+      if (
+        data.lastTeams &&
+        Array.isArray(data.lastTeams) &&
+        data.lastTeams.length > 0 &&
+        data.lastK != null
+      ) {
+        const nn = lastNames.length;
+        lastSplitMeta = {
+          teams: data.lastTeams,
+          k: parseInt(String(data.lastK), 10) || data.lastTeams.length,
+          total: typeof data.lastTotal === "number" ? data.lastTotal : nn,
+          active: typeof data.lastActive === "number" ? data.lastActive : nn,
+          idle: typeof data.lastIdle === "number" ? data.lastIdle : 0,
+        };
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function renderResultFromMeta(meta) {
+      if (!meta || !meta.teams || !meta.teams.length) {
+        $result.innerHTML = "";
+        return;
+      }
+      const { teams, k, total, active, idle } = meta;
+      const sizes = teams.map((t) => t.length).join("、");
+      let html = `<div class="msg info">名单共 <strong>${total}</strong> 人`;
+      if (idle > 0) {
+        html += `，其中 <strong>${active}</strong> 人参与分队（<strong>${idle}</strong> 人暂不参与）`;
+      }
+      html += `；分成 <strong>${k}</strong> 队，各队人数：<strong>${sizes}</strong></div>`;
+      html += '<div class="teams">';
+      teams.forEach((members, i) => {
+        html += `<div class="team"><h3>第 ${i + 1} 队 · ${members.length} 人</h3><ul>`;
+        members.forEach((name) => {
+          html += `<li>${escapeHtml(name)}</li>`;
+        });
+        html += "</ul></div>";
+      });
+      html += "</div>";
+      $result.innerHTML = html;
+    }
+
+    function syncStateFromTextarea() {
+      const names = parseNames($names.value);
+      included = mergeIncluded(lastNames, included, names);
+      lastNames = names.slice();
+    }
+
+    /** Fisher–Yates 洗牌 */
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function splitIntoTeams(names, k) {
+      const n = names.length;
+      if (k < 1) return { error: "队伍数量至少为 1。" };
+      if (k > n) return { error: `当前参与分队仅 ${n} 人，队伍数量不能多于人数。` };
+
+      const shuffled = shuffle(names);
+      const teams = Array.from({ length: k }, () => []);
+      const base = Math.floor(n / k);
+      const remainder = n % k;
+      let idx = 0;
+      for (let t = 0; t < k; t++) {
+        const size = base + (t < remainder ? 1 : 0);
+        for (let s = 0; s < size; s++) {
+          teams[t].push(shuffled[idx++]);
+        }
+      }
+      return { teams };
+    }
+
+    const default15 =
+      "成员01\n成员02\n成员03\n成员04\n成员05\n成员06\n成员07\n成员08\n成员09\n成员10\n成员11\n成员12\n成员13\n成员14\n成员15";
+
+    function updateStats() {
+      syncStateFromTextarea();
+      const n = lastNames.length;
+      const active = included.filter(Boolean).length;
+      const idle = n - active;
+      $statTotal.textContent = n;
+      $statActive.textContent = active;
+      $statIdle.textContent = idle;
+    }
+
+    function renderPool() {
+      syncStateFromTextarea();
+      updateStats();
+
+      if (lastNames.length === 0) {
+        $poolList.innerHTML =
+          '<div class="pool-empty">在上方输入名单后，这里会列出每位成员，可关闭开关将其<strong>移出</strong>本次分队。</div>';
+        scheduleSave();
+        return;
+      }
+
+      $poolList.innerHTML = lastNames
+        .map((name, i) => {
+          const on = included[i];
+          return `
+            <div class="pool-row ${on ? "" : "excluded"}" data-i="${i}">
+              <span class="idx">${i + 1}</span>
+              <span class="name-text">${escapeHtml(name)}</span>
+              <div class="toggle-wrap">
+                <span class="switch-label" id="lbl-${i}">参与</span>
+                <label class="switch" title="参与本次随机分队">
+                  <input type="checkbox" data-index="${i}" ${on ? "checked" : ""} aria-labelledby="lbl-${i}" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+
+      $poolList.querySelectorAll('input[type="checkbox"]').forEach((el) => {
+        el.addEventListener("change", () => {
+          const i = parseInt(el.getAttribute("data-index"), 10);
+          included[i] = el.checked;
+          const row = el.closest(".pool-row");
+          row.classList.toggle("excluded", !el.checked);
+          updateStats();
+          scheduleSave();
+        });
+      });
+      scheduleSave();
+    }
+
+    function runSplit() {
+      syncStateFromTextarea();
+      const activeNames = lastNames.filter((_, i) => included[i]);
+      const k = parseInt($teamCount.value, 10);
+
+      if (lastNames.length === 0) {
+        $result.innerHTML = '<div class="msg warn">请先输入至少一个姓名。</div>';
+        return;
+      }
+      if (activeNames.length === 0) {
+        $result.innerHTML =
+          '<div class="msg warn">当前没有「参与分队」的成员，请在匹配池中打开至少一人的参与开关。</div>';
+        return;
+      }
+      if (Number.isNaN(k) || k < 1) {
+        $result.innerHTML =
+          '<div class="msg warn">请输入有效的队伍数量（正整数）。</div>';
+        return;
+      }
+
+      const out = splitIntoTeams(activeNames, k);
+      if (out.error) {
+        $result.innerHTML = `<div class="msg warn">${escapeHtml(out.error)}</div>`;
+        return;
+      }
+
+      const { teams } = out;
+      const idle = lastNames.length - activeNames.length;
+      lastSplitMeta = {
+        teams,
+        k,
+        total: lastNames.length,
+        active: activeNames.length,
+        idle,
+      };
+      renderResultFromMeta(lastSplitMeta);
+      saveState();
+    }
+
+    $names.addEventListener("input", () => {
+      renderPool();
+    });
+
+    $btnAllIn.addEventListener("click", () => {
+      syncStateFromTextarea();
+      included = lastNames.map(() => true);
+      renderPool();
+    });
+
+    $btnAllOut.addEventListener("click", () => {
+      syncStateFromTextarea();
+      included = lastNames.map(() => false);
+      renderPool();
+    });
+
+    $teamCount.addEventListener("input", scheduleSave);
+    $teamCount.addEventListener("change", saveState);
+
+    $btnSplit.addEventListener("click", runSplit);
+    $btnClear.addEventListener("click", () => {
+      lastSplitMeta = null;
+      $result.innerHTML = "";
+      saveState();
+    });
+
+    $btnExport.addEventListener("click", () => {
+      try {
+        const payload = buildPayload();
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {
+          type: "application/json;charset=utf-8",
+        });
+        const a = document.createElement("a");
+        const t = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        a.download = `team-random-backup-${t.getFullYear()}${pad(t.getMonth() + 1)}${pad(t.getDate())}.json`;
+        a.href = URL.createObjectURL(blob);
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (e) {
+        console.warn(e);
+        alert("导出失败，请重试。");
+      }
+    });
+
+    $btnImport.addEventListener("click", () => {
+      $fileImport.value = "";
+      $fileImport.click();
+    });
+
+    $fileImport.addEventListener("change", () => {
+      const file = $fileImport.files && $fileImport.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(String(reader.result || "{}"));
+          applyLoadedState(data);
+          renderPool();
+          renderResultFromMeta(lastSplitMeta);
+          saveState();
+        } catch (e) {
+          console.warn(e);
+          alert("导入失败：文件不是有效的 JSON 备份。");
+        }
+      };
+      reader.readAsText(file, "UTF-8");
+    });
+
+    $btnResetData.addEventListener("click", () => {
+      if (
+        !confirm(
+          "确定清除本页在本浏览器中保存的全部数据？（名单、开关状态、上次分队结果）"
+        )
+      ) {
+        return;
+      }
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (e) {
+        console.warn(e);
+      }
+      lastSplitMeta = null;
+      $names.value = default15;
+      $teamCount.value = "5";
+      syncStateFromTextarea();
+      included = lastNames.map(() => true);
+      $result.innerHTML = "";
+      renderPool();
+      saveState();
+    });
+
+    const saved = loadState();
+    if (saved && typeof saved.namesText === "string" && saved.namesText.trim() !== "") {
+      applyLoadedState(saved);
+    } else {
+      if (!$names.value.trim()) {
+        $names.value = default15;
+      }
+      syncStateFromTextarea();
+      included = lastNames.map(() => true);
+    }
+    renderPool();
+    renderResultFromMeta(lastSplitMeta);
+    saveState();
+  </script>
+</body>
+</html>
